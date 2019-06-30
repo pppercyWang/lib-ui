@@ -42,9 +42,9 @@ module.exports = {
       port: 8080,
       https: false,
       hotOnly: false, // See https://github.com/vuejs/vue-cli/blob/dev/docs/cli-service.md#configuring-proxy
-      proxy: {      //开发模式配置跨域
+      proxy: {
         '/api': {
-          target: 'http://localhost:8848',
+          target: 'http://47.92.78.91:8848',
           changeOrigin: true,
         }
       },

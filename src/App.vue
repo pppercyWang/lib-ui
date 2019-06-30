@@ -10,7 +10,7 @@
     >
       <el-menu-item index="1">图书管理</el-menu-item>
     </el-menu>
-    <br>
+    <br />
     <el-row>
       <el-col :span="1" class="grid">
         <el-button
@@ -22,7 +22,7 @@
         >新增</el-button>
       </el-col>
     </el-row>
-    <br>
+    <br />
     <el-table
       :data="bookList"
       border
@@ -52,14 +52,15 @@
       </el-table-column>
     </el-table>
     <el-pagination
-      background
-      layout="prev, pager, next"
-      :current-page.sync="page"
-      :page-size="size"
+      @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
+      :current-page="page"
+      :page-sizes="[5, 10, 20]"
+      :page-size="size"
       style="float:right"
-      :total="total"
-    ></el-pagination>
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total">
+    </el-pagination>
     <el-dialog
       :title="addFlag?'新增图书':'修改图书'"
       style="text-align:left !important"
@@ -118,10 +119,23 @@ export default {
       curId: ""
     };
   },
+  watch:{
+    //2.x版本的bug 以前用1.x发现没有 假如现在是第三页，只有一条数据了。将其删除，就没有第三页了。应该跳到第二页展示出5条数据。
+    //可是数据没有展示。原因是获取list的时候page参数没有改变。依然是3
+      total(){
+        if(this.total==(this.page-1)*this.size&& this.total!=0){
+          this.page-=1;
+          this.getBookList()
+        }
+      }
+    },
   methods: {
     handleClose(done) {
-      this.book={}
       done();
+    },
+    handleSizeChange(val){
+      this.size = val
+      this.getBookList()
     },
     handleCurrentChange(val) {
       this.page = val;
@@ -130,63 +144,40 @@ export default {
     async getBookList() {
       try {
         let res = await axios.post(
-          "api/v1/book/list",   //浏览器显示的请求接口地址 localhost:8080/api/v1/book/list       通过代理实际接口地址 localhost:8848/api/v1/book/list
-          qs.stringify({                             //vue.config.js配置跨域
+          "http://127.0.0.1:8848/api/v1/book/list",
+          qs.stringify({
             page: this.page,
             size: this.size
           })
         );
-        this.bookList = res.data.Data.list;
-        console.log(this.bookList);
-        this.total = res.data.Data.total;
+        this.total = res.data.Data.Total;
+        this.bookList = res.data.Data.List;
+        
       } catch (e) {
         console.log(e);
       }
     },
     async saveBook() {
-      if (this.addFlag) {
-        try {
-          let res = await axios.post(
-            "api/v1/book/create",
-            qs.stringify({
-              name: this.book.Name,
-              type: this.book.Type,
-              author: this.book.Author,
-              count: this.book.Count
-            })
-          );
-          this.dialogVisible = false;
-          this.book = {};
-          this.$message({
-            message: res.data.Msg,
-            type: "success"
-          });
-          this.getBookList();
-        } catch (e) {
-          console.log(e);
-        }
-      }else{
-           try {
-          let res = await axios.post(
-            "api/v1/book/save",
-            qs.stringify({
-              id:this.book.ID,
-              name: this.book.Name,
-              type: this.book.Type,
-              author: this.book.Author,
-              count: this.book.Count
-            })
-          );
-          this.dialogVisible = false;
-          this.book = {};
-          this.$message({
-            message: res.data.Msg,
-            type: "success"
-          });
-          this.getBookList();
-        } catch (e) {
-          console.log(e);
-        }
+      try {
+        let res = await axios.post(
+          "http://127.0.0.1:8848/api/v1/book/save",
+          qs.stringify({
+            id: this.book.ID,
+            name: this.book.Name,
+            type: this.book.Type,
+            author: this.book.Author,
+            count: this.book.Count
+          })
+        );
+        this.dialogVisible = false;
+        this.book = {};
+        this.$message({
+          message: res.data.Msg,
+          type: "success"
+        });
+        this.getBookList();
+      } catch (e) {
+        console.log(e);
       }
     },
     delBook(row) {
@@ -196,9 +187,8 @@ export default {
     },
     async handleDel() {
       try {
-        console.log(this.curId);
         let res = await axios.post(
-          "api/v1/book/del",
+          "http://127.0.0.1:8848/api/v1/book/del",
           qs.stringify({
             id: this.curId
           })
@@ -222,7 +212,9 @@ export default {
   },
   mounted() {
     this.getBookList();
-  }
+  },
+
+
 };
 </script>
 
